@@ -1,4 +1,4 @@
-FROM public.ecr.aws/j1r0q0g6/notebooks/notebook-servers/jupyter-tensorflow-cuda:master-e9324d39
+FROM gcr.io/unity-ai-data-mlp-prd/kubeflow/jupyter/tensorflow-gpu:v1.4-vuln-patch
 
 # install - requirements.txt
 COPY --chown=jovyan:users requirements.txt /tmp/requirements.txt

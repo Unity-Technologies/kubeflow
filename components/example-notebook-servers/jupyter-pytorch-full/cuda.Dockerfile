@@ -1,4 +1,4 @@
-FROM public.ecr.aws/j1r0q0g6/notebooks/notebook-servers/jupyter-pytorch-cuda:master-c7ed4a32
+FROM gcr.io/unity-ai-data-mlp-prd/kubeflow/jupyter/pytorch-gpu:v1.4-vuln-patch
 
 # install - requirements.txt
 COPY --chown=jovyan:users requirements.txt /tmp/requirements.txt
