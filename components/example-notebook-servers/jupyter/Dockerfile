@@ -17,6 +17,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
  && apt-get -yq install --no-install-recommends \
     nodejs \
  && apt-get clean \
+ && apt upgrade -y \
  && rm -rf /var/lib/apt/lists/*
 
 # setup environment for conda

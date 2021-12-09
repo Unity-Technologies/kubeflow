@@ -1,3 +1,7 @@
-jupyterlab==3.0.16
-notebook==6.4.0
-ipykernel==5.5.5
+bokeh==2.4.2
+dask==2021.11.2
+jupyter-server==1.12.0
+jupyterlab==3.2.4
+jupyterlab-git==0.34.0
+notebook==6.4.1
+ipykernel==6.5.1
