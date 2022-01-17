@@ -32,6 +32,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     locales \
     lsb-release \
     nano \
+    openssh-client \
     software-properties-common \
     tzdata \
     unzip \

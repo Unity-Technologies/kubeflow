@@ -1,4 +1,4 @@
-FROM gcr.io/unity-ai-data-mlp-prd/kubeflow/jupyter/tensorflow-gpu:v1.4-vuln-patch
+FROM gcr.io/unity-ai-data-mlp-prd/kubeflow/jupyter/tensorflow-gpu:latest
 
 # install - requirements.txt
 COPY --chown=jovyan:users requirements.txt /tmp/requirements.txt

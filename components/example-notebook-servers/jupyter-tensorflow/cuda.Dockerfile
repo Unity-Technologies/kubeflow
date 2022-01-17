@@ -1,4 +1,4 @@
-FROM gcr.io/unity-ai-data-mlp-prd/kubeflow/jupyter/base:v1.4-vuln-patch
+FROM gcr.io/unity-ai-data-mlp-prd/kubeflow/jupyter/jupyter:latest
 
 USER root
 
