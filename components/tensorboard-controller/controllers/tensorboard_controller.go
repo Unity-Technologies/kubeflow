@@ -252,7 +252,7 @@ func generateDeployment(tb *tensorboardv1alpha1.Tensorboard, log logr.Logger, r 
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": tb.Name},
+					Labels: map[string]string{"app": tb.Name, "kubeflow-tensorboard": "true"},
 				},
 				Spec: corev1.PodSpec{
 					Affinity:      affinity,
