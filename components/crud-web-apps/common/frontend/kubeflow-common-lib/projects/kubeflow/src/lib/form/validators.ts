@@ -10,7 +10,6 @@ import {
 
 import { Observable, of, timer, of as observableOf } from 'rxjs';
 import { switchMap, map, catchError } from 'rxjs/operators';
-import { RokService } from '../services/rok/rok.service';
 
 const dns1123LabelFmt = '[a-z0-9]([-a-z0-9]*[a-z0-9])?';
 
@@ -22,6 +21,7 @@ export interface IValidator {
 export const dns1123Validator: IValidator = {
   regex: '^' + dns1123LabelFmt + '(\\.' + dns1123LabelFmt + ')*' + '$',
   help:
+    // prettier-ignore
     'Name must consist of lowercase alphanumeric characters or \'-\', and"' +
     ' must start and end with an alphanumeric character',
 };
@@ -56,6 +56,7 @@ export const cpuValidator: IValidator = {
   regex: '^[0-9]*(m|[.][0-9]+)?$',
   help:
     'Invalid cpu limit: Should be a fixed-point integer or an integer ' +
+    // prettier-ignore
     'followed by \'m\'',
 };
 
@@ -65,7 +66,8 @@ export const DEBOUNCE_TIME = 500;
 export function mergeAndDebounceValidators(
   syncValidators: ValidatorFn[],
 ): AsyncValidatorFn {
-  return (control: AbstractControl): Observable<ValidationErrors | null> => timer(DEBOUNCE_TIME).pipe(
+  return (control: AbstractControl): Observable<ValidationErrors | null> =>
+    timer(DEBOUNCE_TIME).pipe(
       switchMap(() => {
         // Run all synchronous validators and return their concatenated output
         let validationResult: ValidationErrors = {};
@@ -107,7 +109,8 @@ export function getNameError(nameCtrl: AbstractControl, resource: string) {
 }
 
 export function getExistingNameValidator(names: Set<string>): ValidatorFn {
-  return (control: AbstractControl): { [key: string]: any } => names.has(control.value) ? { existingName: true } : null;
+  return (control: AbstractControl): { [key: string]: any } =>
+    names.has(control.value) ? { existingName: true } : null;
 }
 
 export function getNameSyncValidators() {
@@ -125,35 +128,4 @@ export function getNameAsyncValidators(
       getExistingNameValidator(existingNames),
     ]),
   ];
-}
-
-// Rok
-export function getRokUrlError(rokUrlCtrl: AbstractControl) {
-  if (rokUrlCtrl.hasError('required')) {
-    return 'Rok URL cannot be empty';
-  }
-
-  if (rokUrlCtrl.hasError('invalidRokUrl')) {
-    return 'Not a valid Rok URL';
-  }
-}
-
-export function rokUrlValidator(rok: RokService): AsyncValidatorFn {
-  return (control: AbstractControl): Observable<ValidationErrors | null> => {
-    const url = control.value;
-
-    // Don't return error if the url is empty
-    if (url.length === 0) {
-      return of(null);
-    }
-
-    // Ensure a protocol is given
-    // Don't fire while the user is writting
-    return timer(DEBOUNCE_TIME).pipe(
-      switchMap(() => rok.getObjectMetadata(url, false).pipe(
-          map(resp => null),
-          catchError((msg: string) => observableOf({ invalidRokUrl: true })),
-        )),
-    );
-  };
 }

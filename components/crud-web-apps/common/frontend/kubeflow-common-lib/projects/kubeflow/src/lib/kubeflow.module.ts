@@ -11,7 +11,6 @@ import {
   HTTP_INTERCEPTORS,
   HttpClientXsrfModule,
 } from '@angular/common/http';
-import { HeadersInterceptor } from './services/rok/injector';
 import { PopoverModule } from './popover/popover.module';
 import { TitleActionsToolbarModule } from './title-actions-toolbar/title-actions-toolbar.module';
 import { ConditionsTableModule } from './conditions-table/conditions-table.module';
@@ -20,6 +19,10 @@ import { DateTimeModule } from './date-time/date-time.module';
 import { PanelModule } from './panel/panel.module';
 import { LoadingSpinnerModule } from './loading-spinner/loading-spinner.module';
 import { ConfirmDialogModule } from './confirm-dialog/confirm-dialog.module';
+import { EditorModule } from './editor/editor.module';
+import { HelpPopoverModule } from './help-popover/help-popover.module';
+import { StatusIconModule } from './status-icon/status-icon.module';
+import { StatusInfoModule } from './status-info/status-info.module';
 
 @NgModule({
   declarations: [],
@@ -38,10 +41,11 @@ import { ConfirmDialogModule } from './confirm-dialog/confirm-dialog.module';
     DateTimeModule,
     PanelModule,
     LoadingSpinnerModule,
+    EditorModule,
+    HelpPopoverModule,
+    StatusIconModule,
+    StatusInfoModule,
   ],
   imports: [CommonModule, HttpClientModule, HttpClientXsrfModule],
-  providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: HeadersInterceptor, multi: true },
-  ],
 })
 export class KubeflowModule {}

@@ -1,5 +1,7 @@
 iron-ajax(auto, url='/api/workgroup/exists', handle-as='json',
     on-response='_onHasWorkgroupResponse', on-error='_onHasWorkgroupError', loading='{{pageLoading}}')
+iron-ajax(auto, url='/api/metrics', handle-as='json',
+    last-response='{{metrics}}', loading='{{pageLoading}}')
 iron-ajax(auto, url='/api/dashboard-links', handle-as='json',
     on-response='_onHasDashboardLinksResponse', on-error='_onHasDashboardLinksError', loading='{{pageLoading}}')
 iron-ajax#envInfo(auto='[[_shouldFetchEnv]]', url='/api/workgroup/env-info', handle-as='json',
@@ -76,12 +78,13 @@ app-drawer-layout.flex(narrow='{{narrowMode}}',
                         figure.Logo
                             |!{logo}
                 namespace-selector#NamespaceSelector(
-                    query-params='{{queryParams}}', namespaces='[[namespaces]]'
-                    selected='{{namespace}}', hides, hidden$='[[hideNamespaces]]'
-                    all-namespaces='[[allNamespaces]]')
+                    query-params='{{queryParams}}', route='{{route}}',
+                    namespaces='[[namespaces]]', selected='{{namespace}}',
+                    hides, hidden$='[[hideNamespaces]]'
+                    all-namespaces='[[allNamespaces]]',
+                    user='[[user]]')
                 footer#User-Badge
-                    a(target="_top", href="/logout")
-                        iron-icon.icon(icon='kubeflow:logout' title="Logout")
+                    logout-button(logout-url='[[logoutUrl]]')
         main#Content
             section#ViewTabs(hidden$='[[hideTabs]]')
                 paper-tabs(selected='[[page]]', attr-for-selected='page')
@@ -94,14 +97,15 @@ app-drawer-layout.flex(narrow='{{narrowMode}}',
                                 exit-animation='fade-out-animation')
                 neon-animatable(page='dashboard')
                     dashboard-view(namespace='[[queryParams.ns]]',
-                        platform-info='[[platformInfo]]', quick-links='[[quickLinks]]', documentation-items='[[documentationItems]]')
+                        platform-info='[[platformInfo]]', quick-links='[[quickLinks]]', documentation-items='[[documentationItems]]' metrics='[[metrics]]')
                 neon-animatable(page='activity')
                     activity-view(namespace='[[queryParams.ns]]')
                 neon-animatable(page='manage-users')
                     manage-users-view(user='[[user]]', namespaces='[[namespaces]]', is-cluster-admin='[[isClusterAdmin]]', owned-namespace='[[ownedNamespace]]')
                 neon-animatable(page='iframe')
                     iframe-container(namespace='[[namespace]]',
-                        src='[[iframeSrc]]', page="{{iframePage}}")
+                        src='[[iframeSrc]]', page="{{iframePage}}"
+                        namespaces='[[namespaces]]')
                 neon-animatable(page='not_found')
                     not-found-view(path="[[route.path]]")
                 neon-animatable(page='namespace_needed')

@@ -80,6 +80,14 @@ func (r *TensorboardReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return reconcile.Result{}, err
 	}
 
+	// tensorboards-web-app deletes objects using foreground deletion policy, Tensorboard CR will stay until all owned objects are deleted
+	// reconcile loop might keep on trying to recreate the resources that the API server tries to delete.
+	// so when Tensorboard CR is terminating, reconcile loop should do nothing
+
+	if !instance.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
+
 	// Reconcile k8s deployment.
 	deployment, err := generateDeployment(instance, logger, r)
 	if err != nil {
@@ -238,6 +246,14 @@ func generateDeployment(tb *tensorboardv1alpha1.Tensorboard, log logr.Logger, r 
 		})
 	}
 
+	// copy all of the CR labels to the pod which includes poddefault related labels
+	podLabels := map[string]string{}
+	for k, v := range tb.ObjectMeta.Labels {
+		(podLabels)[k] = v
+	}
+	(podLabels)["app"] = tb.Name
+	(podLabels)["kubeflow-tensorboard"] = "true"
+
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      tb.Name,
@@ -252,7 +268,7 @@ func generateDeployment(tb *tensorboardv1alpha1.Tensorboard, log logr.Logger, r 
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": tb.Name},
+					Labels: podLabels,
 				},
 				Spec: corev1.PodSpec{
 					Affinity:      affinity,
@@ -306,10 +322,15 @@ func generateService(tb *tensorboardv1alpha1.Tensorboard) *corev1.Service {
 func generateVirtualService(tb *tensorboardv1alpha1.Tensorboard) (*unstructured.Unstructured, error) {
 	prefix := fmt.Sprintf("/tensorboard/%s/%s/", tb.Namespace, tb.Name)
 	rewrite := "/"
-	service := fmt.Sprintf("%s.%s.svc.cluster.local", tb.Name, tb.Namespace)
+	// service := fmt.Sprintf("%s.%s.svc.cluster.local", tb.Name, tb.Namespace)
+	service := fmt.Sprintf("%s", tb.Name)
 	istioGateway, err := getEnvVariable("ISTIO_GATEWAY")
 	if err != nil {
 		return nil, err
+	}
+	istioHost, errH := getEnvVariable("ISTIO_HOSTS")
+	if errH != nil {
+		return nil, errH
 	}
 
 	vsvc := &unstructured.Unstructured{}
@@ -317,7 +338,8 @@ func generateVirtualService(tb *tensorboardv1alpha1.Tensorboard) (*unstructured.
 	vsvc.SetKind("VirtualService")
 	vsvc.SetName(tb.Name)
 	vsvc.SetNamespace(tb.Namespace)
-	if err := unstructured.SetNestedStringSlice(vsvc.Object, []string{"*"}, "spec", "hosts"); err != nil {
+
+	if err := unstructured.SetNestedStringSlice(vsvc.Object, []string{istioHost}, "spec", "hosts"); err != nil {
 		return nil, fmt.Errorf("Set .spec.hosts error: %v", err)
 	}
 	if err := unstructured.SetNestedStringSlice(vsvc.Object, []string{istioGateway},
@@ -389,8 +411,8 @@ func extractPVCSubPath(path string) string {
 	}
 }
 
-//Searches a corev1.PodList for running pods and returns
-//a running corev1.Pod (if exists)
+// Searches a corev1.PodList for running pods and returns
+// a running corev1.Pod (if exists)
 func findRunningPod(pods *corev1.PodList) corev1.Pod {
 	for _, pod := range pods.Items {
 		if pod.Status.Phase == "Running" {
@@ -450,9 +472,9 @@ func generateNodeAffinity(affinity *corev1.Affinity, pvcname string, r *Tensorbo
 	return nil
 }
 
-//Checks the value of 'RWO_PVC_SCHEDULING' env var (if present in the environment) and returns
-//'true' or 'false' accordingly. If 'RWO_PVC_SCHEDULING' is NOT present, then the value of the
-//returned boolean is set to 'false', so that the scheduling functionality is off by default.
+// Checks the value of 'RWO_PVC_SCHEDULING' env var (if present in the environment) and returns
+// 'true' or 'false' accordingly. If 'RWO_PVC_SCHEDULING' is NOT present, then the value of the
+// returned boolean is set to 'false', so that the scheduling functionality is off by default.
 func rwoPVCScheduling() (error, bool) {
 	if value, exists := os.LookupEnv("RWO_PVC_SCHEDULING"); !exists || value == "false" || value == "False" || value == "FALSE" {
 		return nil, false

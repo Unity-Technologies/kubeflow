@@ -2,10 +2,10 @@ import os
 import random
 import string
 
+from cachetools.func import ttl_cache
+from kubeflow.kubeflow.crud_backend import helpers, logging
 from kubernetes import client
 from werkzeug import exceptions
-
-from kubeflow.kubeflow.crud_backend import helpers, logging
 
 from . import status
 
@@ -41,6 +41,7 @@ def load_notebook_template(**kwargs):
     return helpers.load_param_yaml(NOTEBOOK_TEMPLATE_YAML, **kwargs)
 
 
+@ttl_cache(ttl=60)
 def load_spawner_ui_config():
     for config in CONFIGS:
         config_dict = helpers.load_yaml(config)
@@ -90,13 +91,15 @@ def pvc_from_dict(vol, namespace):
         return None
 
     return client.V1PersistentVolumeClaim(
-        metadata=client.V1ObjectMeta(name=vol["name"], namespace=namespace,),
+        metadata=client.V1ObjectMeta(
+            name=vol["name"],
+            namespace=namespace,
+        ),
         spec=client.V1PersistentVolumeClaimSpec(
             access_modes=[vol["mode"]],
             storage_class_name=get_storage_class(vol),
             resources=client.V1ResourceRequirements(
-                requests={"storage": vol["size"]}
-            ),
+                requests={"storage": vol["size"]}),
         ),
     )
 
@@ -130,7 +133,7 @@ def notebook_dict_from_k8s_obj(notebook):
         "name": notebook["metadata"]["name"],
         "namespace": notebook["metadata"]["namespace"],
         "serverType": server_type,
-        "age": helpers.get_uptime(notebook["metadata"]["creationTimestamp"]),
+        "age": notebook["metadata"]["creationTimestamp"],
         "last_activity": get_notebook_last_activity(notebook),
         "image": cntr["image"],
         "shortImage": cntr["image"].split("/")[-1],
@@ -139,4 +142,5 @@ def notebook_dict_from_k8s_obj(notebook):
         "memory": cntr["resources"]["requests"]["memory"],
         "volumes": [v["name"] for v in cntr["volumeMounts"]],
         "status": status.process_status(notebook),
+        "metadata": notebook["metadata"],
     }

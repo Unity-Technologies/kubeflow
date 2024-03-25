@@ -1,6 +1,7 @@
 # Image URL to use all building/pushing image targets
 IMG ?= tensorboard-controller
 TAG ?= $(shell git describe --tags --always --dirty)
+ARCH ?= linux/amd64
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -79,6 +80,15 @@ docker-build:
 docker-push:
 	docker push ${IMG}:${TAG}
 
+.PHONY: docker-build-multi-arch
+docker-build-multi-arch: ##  Build multi-arch docker images with docker buildx
+	cd ../ && docker buildx build --platform ${ARCH} --tag ${IMG}:${TAG} -f tensorboard-controller/Dockerfile .
+
+
+.PHONY: docker-build-push-multi-arch
+docker-build-push-multi-arch: ## Build multi-arch docker images with docker buildx and push to docker registry 
+	cd ../ && docker buildx build --platform ${ARCH} --tag ${IMG}:${TAG} --push -f tensorboard-controller/Dockerfile .
+
 ##@ Deployment
 
 ifndef ignore-not-found
@@ -122,11 +132,7 @@ PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 define go-get-tool
 @[ -f $(1) ] || { \
 set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
 echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
+GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
 }
 endef

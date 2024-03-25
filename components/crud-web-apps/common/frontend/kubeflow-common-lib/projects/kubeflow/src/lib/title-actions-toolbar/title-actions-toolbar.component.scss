@@ -1,14 +1,9 @@
-@import '../variables.scss';
+@import '../../styles/variables.scss';
 
 :host {
   display: block;
   width: 100%;
   padding-top: 8px;
-}
-
-.title {
-  font-weight: 400;
-  font-size: 24px;
 }
 
 .back-button {
@@ -42,11 +37,8 @@
 }
 
 .toolbar-buttons {
+  display: flex;
   margin: auto 0px;
-}
-
-.toolbar-button {
-  margin-left: 0.2rem;
 }
 
 .toolbar-buttons .toolbar-button:last-child {

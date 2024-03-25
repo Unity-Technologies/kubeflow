@@ -264,7 +264,19 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 			return reconcile.Result{}, err
 		}
 	} else {
-		logger.Info("No update on resource quota", "spec", instance.Spec.ResourceQuotaSpec.String())
+		found := &corev1.ResourceQuota{}
+		err := r.Get(ctx, types.NamespacedName{Name: KFQUOTA, Namespace: instance.Name}, found)
+		if err == nil {
+			if err := r.Delete(ctx, found); err != nil {
+				logger.Error(err, "error deleting resource quota", "namespace", instance.Name)
+				return ctrl.Result{}, err
+			}
+		} else if !apierrors.IsNotFound(err) {
+			logger.Error(err, "error getting resource quota", "namespace", instance.Name)
+			return ctrl.Result{}, err
+		} else {
+			logger.Info("No update on resource quota", "spec", instance.Spec.ResourceQuotaSpec.String())
+		}
 	}
 	if err := r.PatchDefaultPluginSpec(ctx, instance); err != nil {
 		IncRequestErrorCounter("error patching DefaultPluginSpec", SEVERITY_MAJOR)
@@ -405,6 +417,18 @@ func (r *ProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile) istioSecurity.AuthorizationPolicy {
+	nbControllerPrincipal := GetEnvDefault(
+		"NOTEBOOK_CONTROLLER_PRINCIPAL",
+		"cluster.local/ns/kubeflow/sa/notebook-controller-service-account")
+
+	istioIGWPrincipal := GetEnvDefault(
+		"ISTIO_INGRESS_GATEWAY_PRINCIPAL",
+		"cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
+
+	kfpUIPrincipal := GetEnvDefault(
+		"KFP_UI_PRINCIPAL",
+		"cluster.local/ns/kubeflow/sa/ml-pipeline-ui")
+
 	return istioSecurity.AuthorizationPolicy{
 		Action: istioSecurity.AuthorizationPolicy_ALLOW,
 		// Empty selector == match all workloads in namespace
@@ -421,6 +445,14 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 						},
 					},
 				},
+				From: []*istioSecurity.Rule_From{{
+					Source: &istioSecurity.Source{
+						Principals: []string{
+							istioIGWPrincipal,
+							kfpUIPrincipal,
+						},
+					},
+				}},
 			},
 			{
 				When: []*istioSecurity.Condition{
@@ -454,7 +486,7 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 				From: []*istioSecurity.Rule_From{
 					{
 						Source: &istioSecurity.Source{
-							Principals: []string{"cluster.local/ns/kubeflow/sa/notebook-controller-service-account"},
+							Principals: []string{nbControllerPrincipal},
 						},
 					},
 				},
@@ -755,4 +787,12 @@ func (r *ProfileReconciler) readDefaultLabelsFromFile(path string) map[string]st
 		os.Exit(1)
 	}
 	return labels
+}
+
+func GetEnvDefault(variable string, defaultVal string) string {
+	envVar := os.Getenv(variable)
+	if len(envVar) == 0 {
+		return defaultVal
+	}
+	return envVar
 }

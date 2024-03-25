@@ -8,6 +8,7 @@ REQUIRES = [
     "urllib3 >= 1.25.7",
     "Werkzeug >= 0.16.0",
     "Flask-Cors >= 3.0.8",
+    "gevent <= 22.10.2",
 ]
 
 setuptools.setup(
