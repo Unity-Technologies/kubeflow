@@ -339,7 +339,7 @@ func generateVirtualService(tb *tensorboardv1alpha1.Tensorboard) (*unstructured.
 	vsvc.SetName(tb.Name)
 	vsvc.SetNamespace(tb.Namespace)
 
-	if err := unstructured.SetNestedStringSlice(vsvc.Object, []string{istioHost}, "spec", "hosts"); err != nil {
+	if err := unstructured.SetNestedStringSlice(vsvc.Object, strings.Split(istioHost, ","), "spec", "hosts"); err != nil {
 		return nil, fmt.Errorf("Set .spec.hosts error: %v", err)
 	}
 	if err := unstructured.SetNestedStringSlice(vsvc.Object, []string{istioGateway},
