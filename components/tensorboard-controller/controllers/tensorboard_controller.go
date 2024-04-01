@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -290,6 +291,15 @@ func generateDeployment(tb *tensorboardv1alpha1.Tensorboard, log logr.Logger, r 
 								},
 							},
 							VolumeMounts: volumeMounts,
+							Resources: corev1.ResourceRequirements{
+								Limits: map[corev1.ResourceName]k8sres.Quantity{
+									corev1.ResourceMemory: k8sres.MustParse("0.5Gi"),
+								},
+								Requests: map[corev1.ResourceName]k8sres.Quantity{
+									corev1.ResourceMemory: k8sres.MustParse("0.5Gi"),
+									corev1.ResourceCPU:    k8sres.MustParse("0.5"),
+								},
+							},
 						},
 					},
 					Volumes: volumes,

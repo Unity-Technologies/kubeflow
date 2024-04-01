@@ -20,11 +20,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -181,6 +183,15 @@ func (r *PVCViewerReconciler) reconcileDeployment(ctx context.Context, log logr.
 	deployment.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: commonLabels,
 	}
+	viewer.Spec.PodSpec.Containers[0].Resources = corev1.ResourceRequirements{
+		Limits: map[corev1.ResourceName]k8sres.Quantity{
+			corev1.ResourceMemory: k8sres.MustParse("0.5Gi"),
+		},
+		Requests: map[corev1.ResourceName]k8sres.Quantity{
+			corev1.ResourceMemory: k8sres.MustParse("0.5Gi"),
+			corev1.ResourceCPU:    k8sres.MustParse("0.5"),
+		},
+	}
 	deployment.Spec.Template = corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: commonLabels,
@@ -278,7 +289,8 @@ func (r *PVCViewerReconciler) reconcileVirtualService(ctx context.Context, log l
 	if viewer.Spec.Networking.Rewrite != "" {
 		rewrite = viewer.Spec.Networking.Rewrite
 	}
-	service := fmt.Sprintf("%s%s.%s.svc.cluster.local", resourcePrefix, viewer.Name, viewer.Namespace)
+	// service := fmt.Sprintf("%s%s.%s.svc.cluster.local", resourcePrefix, viewer.Name, viewer.Namespace)
+	service := fmt.Sprintf("%s%s", resourcePrefix, viewer.Name)
 	var timeout *string = nil
 	if viewer.Spec.Networking.Timeout != "" {
 		timeout = &viewer.Spec.Networking.Timeout
@@ -290,8 +302,13 @@ func (r *PVCViewerReconciler) reconcileVirtualService(ctx context.Context, log l
 		istioGateway = defaultIstioGateway
 	}
 
+	istioHosts := os.Getenv("ISTIO_HOSTS")
+	if len(istioHosts) == 0 {
+		istioHosts = "*"
+	}
+
 	virtualService.Object["spec"] = map[string]interface{}{
-		"hosts": []string{"*"},
+		"hosts": strings.Split(istioHosts, ","),
 		"gateways": []string{
 			istioGateway,
 		},
