@@ -471,7 +471,7 @@ func virtualServiceName(kfName string, namespace string) string {
 func generateVirtualService(instance *v1beta1.Notebook) (*unstructured.Unstructured, error) {
 	name := instance.Name
 	namespace := instance.Namespace
-	clusterDomain := "cluster.local"
+	// clusterDomain := "cluster.local"
 	prefix := fmt.Sprintf("/notebook/%s/%s/", namespace, name)
 
 	// unpack annotations from Notebook resource
@@ -486,17 +486,23 @@ func generateVirtualService(instance *v1beta1.Notebook) (*unstructured.Unstructu
 		rewrite = annotations[AnnotationRewriteURI]
 	}
 
-	if clusterDomainFromEnv, ok := os.LookupEnv("CLUSTER_DOMAIN"); ok {
-		clusterDomain = clusterDomainFromEnv
-	}
-	service := fmt.Sprintf("%s.%s.svc.%s", name, namespace, clusterDomain)
+	// if clusterDomainFromEnv, ok := os.LookupEnv("CLUSTER_DOMAIN"); ok {
+	// 	clusterDomain = clusterDomainFromEnv
+	// }
+	// service := fmt.Sprintf("%s.%s.svc.%s", name, namespace, clusterDomain)
+	service := fmt.Sprintf("%s", name)
 
 	vsvc := &unstructured.Unstructured{}
 	vsvc.SetAPIVersion("networking.istio.io/v1alpha3")
 	vsvc.SetKind("VirtualService")
 	vsvc.SetName(virtualServiceName(name, namespace))
 	vsvc.SetNamespace(namespace)
-	if err := unstructured.SetNestedStringSlice(vsvc.Object, []string{"*"}, "spec", "hosts"); err != nil {
+
+	istioHosts := strings.Split(os.Getenv("ISTIO_HOSTS"), ",")
+	if len(istioHosts) == 0 {
+		istioHosts = []string{"*"}
+	}
+	if err := unstructured.SetNestedStringSlice(vsvc.Object, istioHosts, "spec", "hosts"); err != nil {
 		return nil, fmt.Errorf("set .spec.hosts error: %v", err)
 	}
 
